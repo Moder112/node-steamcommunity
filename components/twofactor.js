@@ -150,3 +150,67 @@ SteamCommunity.prototype.disableTwoFactor = function(revocationCode, callback) {
 		callback(null);
 	}, 'steamcommunity');
 };
+
+
+SteamCommunity.prototype.requestTwoFactorChallenge = function(callback) {
+	this._verifyMobileAccessToken();
+
+	if (!this.mobileAccessToken) {
+		callback(new Error('No mobile access token available. Provide one by calling setMobileAppAccessToken()'));
+		return;
+	}
+
+	this.httpRequestPost({
+		uri: "https://api.steampowered.com/ITwoFactorService/RemoveAuthenticatorViaChallengeStart/v1/?access_token=" + this.mobileAccessToken,
+		form: {},
+		json: true
+	}, (err, response, body) => {
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		if (!body.response) {
+			callback(new Error('Malformed response'));
+			return;
+		}
+
+		
+		callback(null, body.response);
+	}, 'steamcommunity');
+};
+
+
+
+SteamCommunity.prototype.modifyViaTwoFactorChallenge = function(smsCode, removeAuthenticator, callback) {
+	this._verifyMobileAccessToken();
+
+	if (!this.mobileAccessToken) {
+		callback(new Error('No mobile access token available. Provide one by calling setMobileAppAccessToken()'));
+		return;
+	}
+
+	this.httpRequestPost({
+		uri: 'https://api.steampowered.com/ITwoFactorService/RemoveAuthenticatorViaChallengeContinue/v1/?access_token=' + this.mobileAccessToken,
+		form: {
+			sms_code: smsCode,
+			generate_new_token: !(typeof removeAuthenticator == 'boolean' && removeAuthenticator)
+		},
+		json: true
+	}, function(err, response, body) {
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		if (!body.response) {
+			callback(new Error('Malformed response'));
+			return;
+		}
+
+		body = body.response;
+
+		callback(null, body);
+	}, 'steamcommunity');
+};
+
